@@ -4,7 +4,6 @@ if [ ! -f "ft_president" ]; then
 	make || exit
 fi
 
-
 fileIn=$1
 fileOut=$2
 count=$3
@@ -19,4 +18,4 @@ if [ $count -le 0 ]; then
 	exit
 fi
 
-./ft_president $fileIn $fileOut $count
+./ft_president $count < $fileIn > $fileOut

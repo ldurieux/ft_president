@@ -1,7 +1,10 @@
 NAME		= ft_president
 
 SRCS		= \
-			  main.c
+			  main.c \
+			  srcs/init.c \
+			  srcs/parse.c \
+			  srcs/read_data.c \
 
 CPPSRCS		= \
 
@@ -30,8 +33,8 @@ OBJS		= $(SRCS:%.c=$(BUILDDIR)/%.o) \
 			  $(ASMSRCS:%.s=$(BUILDDIR)/%.o)
 DEPS		= $(SRCS:%.c=$(BUILDDIR)/%.d)
 CC			= cc
-CCWFLGS		= -Wall -Wextra -Werror
-CCDBGFLGS	= -fsanitize=address -g3
+CCWFLGS		= -g #-Wall -Wextra -Werror
+CCDBGFLGS	= -fsanitize=address -g
 CCO1FLGS	= -O1 -march=native -ffast-math
 CCO2FLGS	= -O2 -march=native -ffast-math
 CCO3FLGS	= -O3 -march=native -ffast-math
