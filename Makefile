@@ -36,14 +36,14 @@ OBJS		= $(SRCS:%.c=$(BUILDDIR)/%.o) \
 DEPS		= $(SRCS:%.c=$(BUILDDIR)/%.d) \
 			  $(CPPSRCS:%.cpp=$(BUILDDIR)/%.d)
 CC			= cc
-CCWFLGS		= -g #-Wall -Wextra -Werror
-CCDBGFLGS	= -fsanitize=address -g
+CCWFLGS		= -O2 -march=native -ffast-math
+CCDBGFLGS	= #-fsanitize=address -g
 CCO1FLGS	= -O1 -march=native -ffast-math
 CCO2FLGS	= -O2 -march=native -ffast-math
 CCO3FLGS	= -O3 -march=native -ffast-math
 CXX			= c++ -std=c++17
-CXXWFLGS	= -g #-Wall -Wextra -Werror
-CXXDBGFLGS	= -fsanitize=address -g
+CXXWFLGS	= -O2 -march=native -ffast-math
+CXXDBGFLGS	= #-fsanitize=address -g
 CXXO1FLGS	= -O1 -march=native -ffast-math
 CXXO2FLGS	= -O2 -march=native -ffast-math
 CXXO3FLGS	= -O3 -march=native -ffast-math

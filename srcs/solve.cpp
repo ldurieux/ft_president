@@ -4,63 +4,22 @@ s_ft_president president;
 
 using namespace std;
 
-struct Group
+struct VectorHashFunction
 {
-	Group(uint64_t pts) :
-		points(pts)
+	size_t operator()(const vector<uint64_t>& groups) const
 	{
-	}
+		size_t res = 0;
 
-	void compute()
-	{
-		sum = getSum(points);
-	}
-
-	uint64_t	points;
-	uint64_t	sum;
-
-	bool operator==(const Group& other) const
-	{
-		return points == other.points;
-	}
-
-	struct HashFunction
-	{
-		size_t operator()(const Group& group) const { return group.points; }
-	};
-
-	struct SetHashFunction
-	{
-		size_t operator()(const vector<Group>& groups) const
-		{
-			size_t res = 0;
-
-			for (uint64_t i = 0; i < groups.size(); i++)
-				res += groups.at(i).points << i;
-			return res;
-		}
-	};
-
-private:
-	static uint64_t getSum(uint64_t pts)
-	{
-		uint64_t sum = 0;
-
-		for (uint64_t i = 0; pts != 0; i++)
-		{
-			if (!(pts & ((uint64_t)1 << i)))
-				continue ;
-			sum += president.pibs[i];
-			pts -= (uint64_t)1 << i;
-		}
-		return (sum);
+		for (uint64_t i = 0; i < groups.size(); i++)
+			res += groups[i] << i;
+		return res;
 	}
 };
 
-typedef unordered_set<Group, Group::HashFunction> GroupSet;
-typedef unordered_set<Group, Group::HashFunction>::const_iterator GroupSetIt;
-typedef unordered_set<vector<Group>, Group::SetHashFunction> Set;
-typedef unordered_set<vector<Group>, Group::SetHashFunction>::const_iterator SetIt;
+typedef unordered_set<uint64_t> GroupSet;
+typedef unordered_set<uint64_t>::const_iterator GroupSetIt;
+typedef unordered_set<vector<uint64_t>, VectorHashFunction> Set;
+typedef unordered_set<vector<uint64_t>, VectorHashFunction>::const_iterator SetIt;
 
 GroupSet groups;
 GroupSetIt groupsEnd;
@@ -74,14 +33,13 @@ uint64_t	idx_to_bin(uint8_t idx)
 	return (res);
 }
 
-void	recursive_compute_groups(int8_t depth, uint64_t arrPts, uint8_t ptIdx)
+void	recursive_compute_groups(uint8_t depth, uint64_t arrPts, uint8_t ptIdx)
 {
 	if (depth == 0)
 	{
-		Group group(arrPts);
-		const auto it = groups.find(group);
+		const auto it = groups.find(arrPts);
 		if (it == groups.end())
-			groups.insert(group);
+			groups.insert(arrPts);
 		return ;
 	}
 
@@ -103,32 +61,32 @@ void	compute_groups()
 }
 
 void	recursive_compute_sets(uint64_t goalMask, GroupSetIt begin, uint64_t arrPts, int8_t groupCount,
-							   vector<Group> &curArr)
+							   uint64_t *curArr)
 {
-	if (groupCount > president.res_size)
-		return ;
 	if (arrPts == goalMask)
 	{
 		if (groupCount != president.res_size)
 			return ;
-		curArr.push_back(*begin);
-		const auto it = sets.find(curArr);
-		if (it == sets.end())
-			sets.insert(curArr);
+		*curArr = *begin;
+		curArr -= groupCount - 1;
+		vector<uint64_t> vec(groupCount);
+		for (int i = 0; i < president.res_size; i++)
+			vec.push_back(curArr[i]);
+		sets.insert(vec);
 		return ;
 	}
-	if (begin == groupsEnd)
+	if (begin == groupsEnd || groupCount == president.res_size)
 		return ;
 
-	curArr.push_back(*begin);
+	*curArr = *begin;
+	curArr++;
 	begin++;
-	for (GroupSetIt it = begin; it != groupsEnd; it++)
+	for (auto it = begin; it != groupsEnd; ++it)
 	{
-		if (arrPts & it->points)
+		if (arrPts & *it)
 			continue ;
-		uint64_t tmpArrPts = arrPts | it->points;
-		vector<Group> cpyArr = curArr;
-		recursive_compute_sets(goalMask, it, tmpArrPts, groupCount + 1, cpyArr);
+		uint64_t tmpArrPts = arrPts | *it;
+		recursive_compute_sets(goalMask, it, tmpArrPts, groupCount + 1, curArr);
 	}
 }
 
@@ -139,30 +97,43 @@ void	compute_sets(uint8_t goalPts)
 		goalMask |= (uint64_t)1 << i;
 
 	uint64_t count = 0;
+	uint64_t *tmpArr = new uint64_t[president.res_size];
 	for (auto it = groups.begin(); it != groupsEnd; it++)
 	{
-		vector<Group> tmpArr;
-		recursive_compute_sets(goalMask, it, it->points, 1, tmpArr);
+		recursive_compute_sets(goalMask, it, *it, 1, tmpArr);
 		count++;
 		if (count % 64 == 0)
 			cerr << "calculing sets... " << (float)count / (float)groups.size() * 100.0f << "%" << endl;
 	}
 }
 
-vector<Group>	compute_res()
+uint64_t getSum(uint64_t pts)
+{
+	uint64_t sum = 0;
+
+	for (uint64_t i = 0; pts != 0; i++)
+	{
+		if (!(pts & ((uint64_t)1 << i)))
+			continue ;
+		sum += president.pibs[i];
+		pts -= (uint64_t)1 << i;
+	}
+	return (sum);
+}
+
+vector<uint64_t>	compute_res()
 {
 	int64_t goal = (int64_t)president.mean * (int64_t)president.mean;
-	vector<Group> bestGroup;
+	vector<uint64_t> bestGroup;
 	int64_t bestDiff = INT64_MAX;
 
-	for (auto it = sets.begin(); it != sets.end(); it++)
+	for (const auto& curGroup : sets)
 	{
-		vector<Group> curGroup = *it;
 		int64_t val = 0;
-		for (int i = 0; i < curGroup.size(); i++)
+		for (uint64_t i : curGroup)
 		{
-			curGroup[i].compute();
-			val += (president.mean - (int64_t)curGroup[i].sum) * (president.mean - (int64_t)curGroup[i].sum);
+			int64_t sum = getSum(i);
+			val += (president.mean - sum) * (president.mean - sum);
 		}
 		val = abs(goal - (int64_t)(val / curGroup.size()));
 		if (val < bestDiff)
@@ -174,14 +145,14 @@ vector<Group>	compute_res()
 	return bestGroup;
 }
 
-void	print_res(const vector<Group>& bestGroup)
+void	print_res(const vector<uint64_t>& bestGroup)
 {
-	for (auto it = bestGroup.begin(); it != bestGroup.end(); it++)
+	for (unsigned long it : bestGroup)
 	{
 		bool first = true;
 		for (uint64_t i = 0; i < 64; i++)
 		{
-			if (it->points & ((uint64_t)1 << i))
+			if (it & ((uint64_t)1 << i))
 			{
 				if (!first)
 					cout << '-';
@@ -203,10 +174,8 @@ void	solve(t_ft_president *_president)
 	compute_sets(president.count);
 	cerr << "set count: " << sets.size() << endl;
 
-	vector<Group> bestGroup = compute_res();
+	vector<uint64_t> bestGroup = compute_res();
 
 	print_res(bestGroup);
 	cerr << "done!" << endl;
-
-	return ;
 }
