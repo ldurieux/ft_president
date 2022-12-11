@@ -1,7 +1,9 @@
 #include "ft_president.h"
 #include <stdio.h>
+#include <iostream>
+#include <fcntl.h>
 
-#define DEBUG
+//#define DEBUG
 
 int main(int argc, char **argv)
 {
@@ -9,7 +11,6 @@ int main(int argc, char **argv)
 	char			*data;
 
 #ifdef DEBUG
-#include <fcntl.h>
 	int fd = open("in.txt", O_RDONLY);
 	dup2(fd, STDIN_FILENO);
 #endif
@@ -21,6 +22,7 @@ int main(int argc, char **argv)
 		return (1);
 	if (!parse(data, &president))
 		return (free(data), 1);
+	solve(&president);
 	free(data);
 	return (0);
 }

@@ -4,24 +4,25 @@ uint8_t	parse(char *data, t_ft_president *president)
 {
 	char	*neighbour_names[MAX_REGION][MAX_REGION];
 	uint8_t	pos;
+	uint8_t	count;
 
-	for (uint8_t idx = 0; *data; idx++)
+	for (count = 0; *data; count++)
 	{
 		pos = strcspn(data, " ");
 		data[pos] = '\0';
-		president->names[idx] = data;
+		president->names[count] = data;
 		data += pos + 3;
-		president->pibs[idx] = strtoul(data, &data, 10);
+		president->pibs[count] = strtoul(data, &data, 10);
 		data += 3;
 		pos = strcspn(data, "\n");
 		data[pos] = '\0';
 		for (uint8_t j = 0;; j++)
 		{
 			pos = strcspn(data, "-");
-			neighbour_names[idx][j] = data;
+			neighbour_names[count][j] = data;
 			if (data[pos] == '\0')
 			{
-				neighbour_names[idx][j + 1] = NULL;
+				neighbour_names[count][j + 1] = NULL;
 				break ;
 			}
 			data[pos] = '\0';
@@ -29,6 +30,7 @@ uint8_t	parse(char *data, t_ft_president *president)
 		}
 		data += pos + 1;
 	}
+	president->count = count;
 	for (uint8_t idx = 0; idx < president->count; idx++)
 	{
 		uint8_t j;
