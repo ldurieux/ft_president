@@ -18,11 +18,13 @@ struct VectorHashFunction
 
 typedef unordered_set<uint64_t> GroupSet;
 typedef unordered_set<uint64_t>::const_iterator GroupSetIt;
+typedef unordered_map<uint64_t, GroupSet> OptimizedGroups;
+typedef unordered_map<uint64_t, GroupSet>::const_iterator OptimizedGroupsIt;
 typedef unordered_set<vector<uint64_t>, VectorHashFunction> Set;
 typedef unordered_set<vector<uint64_t>, VectorHashFunction>::const_iterator SetIt;
 
 GroupSet groups;
-GroupSetIt groupsEnd;
+OptimizedGroups optimizedGroups;
 Set sets;
 
 uint64_t	idx_to_bin(uint8_t idx)
@@ -60,14 +62,14 @@ void	compute_groups()
 			recursive_compute_groups(depth, (uint64_t)1 << idx, idx);
 }
 
-void	recursive_compute_sets(uint64_t goalMask, GroupSetIt begin, uint64_t arrPts, int8_t groupCount,
-							   uint64_t *curArr)
+void	recursive_compute_sets(uint64_t goalMask, GroupSetIt begin, GroupSetIt end, uint64_t val,
+							   uint64_t arrPts, int8_t groupCount, uint64_t *curArr)
 {
 	if (arrPts == goalMask)
 	{
 		if (groupCount != president.res_size)
 			return ;
-		*curArr = *begin;
+		*curArr = val;
 		curArr -= groupCount - 1;
 		vector<uint64_t> vec(groupCount);
 		for (int i = 0; i < president.res_size; i++)
@@ -75,20 +77,27 @@ void	recursive_compute_sets(uint64_t goalMask, GroupSetIt begin, uint64_t arrPts
 		sets.insert(vec);
 		return ;
 	}
-	if (begin == groupsEnd || groupCount == president.res_size)
+	if (begin == groups.end() || groupCount == president.res_size)
 		return ;
 
-	*curArr = *begin;
+	*curArr = val;
 	curArr++;
-	begin++;
-	for (auto it = begin; it != groupsEnd; ++it)
+	for (auto it = begin; it != groups.end(); )
 	{
 		if (arrPts & *it)
+		{
+			it++;
 			continue ;
-		uint64_t tmpArrPts = arrPts | *it;
-		recursive_compute_sets(goalMask, it, tmpArrPts, groupCount + 1, curArr);
+		}
+		val = *it;
+		uint64_t tmpArrPts = arrPts | val;
+		it++;
+		recursive_compute_sets(goalMask, it, end, val, tmpArrPts, groupCount + 1, curArr);
 	}
 }
+
+#define PRE_COUNT 10
+#define PRE_MASK 0x3ff
 
 void	compute_sets(uint8_t goalPts)
 {
@@ -98,13 +107,21 @@ void	compute_sets(uint8_t goalPts)
 
 	uint64_t count = 0;
 	uint64_t *tmpArr = new uint64_t[president.res_size];
-	for (auto it = groups.begin(); it != groupsEnd; it++)
+	for (auto it = groups.begin(); it != groups.end(); it++)
 	{
-		recursive_compute_sets(goalMask, it, *it, 1, tmpArr);
+		uint64_t val = *it & PRE_MASK;
+		GroupSet set;
+		auto pair = optimizedGroups.find(val);
+		if (pair != optimizedGroups.end())
+			set = optimizedGroups.find(val)->second;
+		else
+			set = groups;
+		recursive_compute_sets(goalMask, set.begin(), set.end(), *it, *it, 1, tmpArr);
 		count++;
-		if (count % 64 == 0)
+		if (count % 128 == 0)
 			cerr << "calculing sets... " << (float)count / (float)groups.size() * 100.0f << "%" << endl;
 	}
+	delete[] tmpArr;
 }
 
 uint64_t getSum(uint64_t pts)
@@ -164,12 +181,35 @@ void	print_res(const vector<uint64_t>& bestGroup)
 	}
 }
 
+void	compute_optimized_groups(uint64_t start, uint64_t startMask)
+{
+	uint64_t end = min(PRE_COUNT, president.count - president.res_size + 1);
+	if (start >= end)
+		return ;
+	for (uint64_t i = start; i < end; i++)
+	{
+		uint64_t mask = startMask | (uint64_t)1 << i;
+		GroupSet cur;
+		for (unsigned long group : groups)
+			if (!(group & mask))
+				cur.insert(group);
+		optimizedGroups.insert(std::make_pair(mask, cur));
+		compute_optimized_groups(i + 1, mask);
+	}
+	if (start < end)
+		compute_optimized_groups(start + 1, startMask);
+}
+
 void	solve(t_ft_president *_president)
 {
 	president = *_president;
 
 	compute_groups();
 	cerr << "group count: " << groups.size() << endl;
+
+	cerr << "optimizing groups..." << endl;
+	compute_optimized_groups(0, 0);
+	cerr << "optimized groups !" << endl;
 
 	compute_sets(president.count);
 	cerr << "set count: " << sets.size() << endl;

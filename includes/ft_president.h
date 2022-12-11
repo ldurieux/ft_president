@@ -8,6 +8,7 @@
 
 #ifdef __cplusplus
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
 #include <iostream>
 #endif
