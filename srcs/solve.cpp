@@ -206,6 +206,8 @@ void	solve(t_ft_president *_president)
 
 	compute_groups();
 	cerr << "group count: " << groups.size() << endl;
+	if (groups.size() == 0)
+		return ;
 
 	cerr << "optimizing groups..." << endl;
 	compute_optimized_groups(0, 0);
